@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Plus,
@@ -56,6 +56,11 @@ function TravelPlannerContent() {
 
   // State: Mobile toggle ('split' | 'list' | 'map')
   const [mobileView, setMobileView] = useState<"split" | "list" | "map">("split");
+
+  // State: Drag and Drop reordering
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const touchStartRef = useRef<{ index: number; startY: number } | null>(null);
 
   // State: Toast notifications
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -328,6 +333,112 @@ function TravelPlannerContent() {
     setActivePlaceId(place.id);
   };
 
+  // Handlers for Drag & Drop Place Reordering
+  const handleReorderPlaces = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+
+    const currentDay = trip.days.find((d) => d.day === activeDay);
+    if (!currentDay) return;
+
+    const placesList = [...currentDay.places];
+    if (
+      fromIndex < 0 ||
+      fromIndex >= placesList.length ||
+      toIndex < 0 ||
+      toIndex >= placesList.length
+    ) {
+      return;
+    }
+
+    const [movedItem] = placesList.splice(fromIndex, 1);
+    placesList.splice(toIndex, 0, movedItem);
+
+    const updatedDays = trip.days.map((d) => {
+      if (d.day === activeDay) {
+        return {
+          ...d,
+          places: placesList,
+        };
+      }
+      return d;
+    });
+
+    const updated = { ...trip, days: updatedDays };
+    saveTripState(updated);
+    addToast(`'${movedItem.name}'의 순서가 ${toIndex + 1}번째로 변경되었습니다.`);
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData("text/plain", index.toString());
+    e.dataTransfer.effectAllowed = "move";
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDragEnter = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && index !== draggedIndex) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent, index: number) => {
+    // Keep target or let dragenter handle
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    const sourceIndexStr = e.dataTransfer.getData("text/plain");
+    const sourceIndex = sourceIndexStr ? parseInt(sourceIndexStr, 10) : draggedIndex;
+
+    if (sourceIndex !== null && !isNaN(sourceIndex) && sourceIndex !== targetIndex) {
+      handleReorderPlaces(sourceIndex, targetIndex);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // Touch handlers for mobile devices
+  const handleTouchDragStart = (index: number, e: React.TouchEvent) => {
+    touchStartRef.current = { index, startY: e.touches[0].clientY };
+    setDraggedIndex(index);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const touch = e.touches[0];
+    const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+    const cardElem = elem?.closest("[data-place-index]");
+    if (cardElem) {
+      const targetIdx = Number(cardElem.getAttribute("data-place-index"));
+      if (!isNaN(targetIdx) && targetIdx !== touchStartRef.current.index) {
+        setDragOverIndex(targetIdx);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (
+      touchStartRef.current &&
+      dragOverIndex !== null &&
+      touchStartRef.current.index !== dragOverIndex
+    ) {
+      handleReorderPlaces(touchStartRef.current.index, dragOverIndex);
+    }
+    touchStartRef.current = null;
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   const handleResetToDefault = () => {
     if (confirm("모든 일정을 초기 제주 2박 3일 추천 일정으로 되돌리시겠습니까?")) {
       saveTripState(initialTripData);
@@ -517,7 +628,12 @@ function TravelPlannerContent() {
           </div>
 
           {/* Place Cards List (Scrollable) */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-5 pb-20 md:pb-5 space-y-1">
+          <div
+            className="flex-1 overflow-y-auto custom-scrollbar p-5 pb-20 md:pb-5 space-y-1"
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+          >
             {currentPlaces.length === 0 ? (
               <div className="h-64 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
                 <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center mb-3">
@@ -547,11 +663,23 @@ function TravelPlannerContent() {
                   <PlaceCard
                     place={place}
                     index={idx}
+                    totalPlaces={currentPlaces.length}
                     isActive={place.id === activePlaceId}
                     isReadOnly={isReadOnly}
+                    isDragging={draggedIndex === idx}
+                    isDragOver={dragOverIndex === idx && draggedIndex !== idx}
                     onSelect={handleSelectPlace}
                     onDelete={handleDeletePlace}
                     onUpdateMemo={handleUpdateMemo}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onDragEnd={handleDragEnd}
+                    onTouchDragStart={handleTouchDragStart}
+                    onMoveUp={() => handleReorderPlaces(idx, idx - 1)}
+                    onMoveDown={() => handleReorderPlaces(idx, idx + 1)}
                   />
 
                   {/* Distance and Travel Time Badge between cards */}
