@@ -13,6 +13,7 @@ import {
   Layers,
   Map as MapIcon,
   List as ListIcon,
+  Rows,
   RotateCcw,
   CheckCircle2,
   SlidersHorizontal,
@@ -53,8 +54,8 @@ function TravelPlannerContent() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isMyTripsOpen, setIsMyTripsOpen] = useState(false);
 
-  // State: Mobile toggle ('list' | 'map')
-  const [mobileView, setMobileView] = useState<"list" | "map">("list");
+  // State: Mobile toggle ('split' | 'list' | 'map')
+  const [mobileView, setMobileView] = useState<"split" | "list" | "map">("split");
 
   // State: Toast notifications
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -442,10 +443,14 @@ function TravelPlannerContent() {
 
       {/* Main 2-Column Responsive Container */}
       <div className="flex-1 flex flex-col md:flex-row w-full h-full min-h-0 min-w-0 overflow-hidden relative">
-        {/* Left Column: Itinerary Management Panel */}
+        {/* Left Column / Bottom Panel: Itinerary Management */}
         <aside
-          className={`w-full md:w-[420px] lg:w-[450px] shrink-0 h-full min-h-0 flex flex-col bg-white border-r border-slate-200/90 z-10 transition-all ${
-            mobileView === "map" ? "hidden md:flex" : "flex"
+          className={`bg-white border-slate-200/90 z-10 transition-all min-h-0 flex flex-col ${
+            mobileView === "split"
+              ? "flex-1 w-full order-2 md:order-1 md:w-[420px] lg:w-[450px] md:h-full border-t md:border-t-0 md:border-r"
+              : mobileView === "list"
+              ? "h-full w-full order-2 md:order-1 md:w-[420px] lg:w-[450px] md:h-full border-r flex"
+              : "hidden md:flex md:order-1 md:w-[420px] lg:w-[450px] md:h-full border-r"
           }`}
         >
           {/* Header */}
@@ -512,7 +517,7 @@ function TravelPlannerContent() {
           </div>
 
           {/* Place Cards List (Scrollable) */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-1">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-5 pb-20 md:pb-5 space-y-1">
             {currentPlaces.length === 0 ? (
               <div className="h-64 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
                 <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center mb-3">
@@ -581,8 +586,12 @@ function TravelPlannerContent() {
 
         {/* Right Column: Kakao Map Area */}
         <main
-          className={`flex-1 h-full min-h-0 min-w-0 relative transition-all ${
-            mobileView === "list" ? "hidden md:block" : "block"
+          className={`min-w-0 relative transition-all ${
+            mobileView === "split"
+              ? "h-[36vh] sm:h-[40vh] w-full shrink-0 order-1 md:order-2 md:h-full md:flex-1 block shadow-xs"
+              : mobileView === "map"
+              ? "h-full w-full order-1 md:order-2 md:h-full md:flex-1 block"
+              : "hidden md:block md:order-2 md:h-full md:flex-1"
           }`}
         >
           <KakaoMap
@@ -591,9 +600,9 @@ function TravelPlannerContent() {
             activePlaceId={activePlaceId}
             onSelectPlace={(place) => {
               handleSelectPlace(place);
-              // On mobile, if user clicks marker, switch to list to see detail
-              if (window.innerWidth < 768) {
-                setMobileView("list");
+              // On mobile in map-only view, switch to split view so place is visible
+              if (window.innerWidth < 768 && mobileView === "map") {
+                setMobileView("split");
               }
             }}
             onOpenKeyModal={() => setIsKeyModalOpen(true)}
@@ -602,29 +611,40 @@ function TravelPlannerContent() {
       </div>
 
       {/* Mobile Bottom Floating Switcher */}
-      <div className="md:hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-40 bg-slate-900/90 text-white backdrop-blur-md px-1.5 py-1.5 rounded-full shadow-floating border border-slate-700/60 flex items-center gap-1">
+      <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-slate-900/90 text-white backdrop-blur-md p-1 rounded-full shadow-2xl border border-slate-700/60 flex items-center gap-1">
+        <button
+          onClick={() => setMobileView("split")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+            mobileView === "split"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "text-slate-400 hover:text-white"
+          }`}
+          title="상단 지도 + 하단 일정"
+        >
+          <Rows className="w-3.5 h-3.5" />
+          <span>지도+일정</span>
+        </button>
         <button
           onClick={() => setMobileView("list")}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
             mobileView === "list"
               ? "bg-blue-600 text-white shadow-xs"
               : "text-slate-400 hover:text-white"
           }`}
         >
           <ListIcon className="w-3.5 h-3.5" />
-          <span>일정 리스트</span>
+          <span>일정만</span>
         </button>
         <button
           onClick={() => setMobileView("map")}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
             mobileView === "map"
               ? "bg-blue-600 text-white shadow-xs"
               : "text-slate-400 hover:text-white"
           }`}
         >
           <MapIcon className="w-3.5 h-3.5" />
-          <span>지도 보기</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+          <span>지도만</span>
         </button>
       </div>
 
