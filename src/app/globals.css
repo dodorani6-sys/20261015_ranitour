@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #171717;
+  }
+
+  body {
+    color: var(--foreground);
+    background: var(--background);
+    font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Fix Kakao Map tile stretching/broken tiles caused by Tailwind Preflight */
+.kakao-map-container img,
+#kakao-map-container img,
+.kakao-custom-overlay img {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* Custom scrollbar for left panel */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+/* Kakao custom overlay styling */
+.kakao-custom-overlay {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform: translate(-50%, -100%);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+}
+
+.kakao-custom-overlay:hover {
+  transform: translate(-50%, -105%) scale(1.08);
+  z-index: 50;
+}
+
+.kakao-custom-overlay.active {
+  transform: translate(-50%, -110%) scale(1.15);
+  z-index: 100;
+}
+
+.kakao-custom-overlay.active .marker-pin {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35);
+}
+
+.marker-bubble {
+  background: #2563eb;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+.marker-tail {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 7px solid #2563eb;
+}
+
+.marker-title-tooltip {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.9);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
