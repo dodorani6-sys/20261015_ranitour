@@ -80,10 +80,12 @@ function TravelPlannerContent() {
 
   // Load API Key & Stored Trips from localStorage
   useEffect(() => {
-    // 1. Check API key: environment variable or localStorage
-    const envKey = process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY || "";
+    // 1. Check API key: localStorage, environment variable, or default key
+    const envKey =
+      process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY ||
+      "b9ccbf52dd55480bbb63e5b9dc9ad6cc";
     const savedKey = localStorage.getItem("kakao_map_api_key") || "";
-    const effectiveKey = envKey || savedKey;
+    const effectiveKey = savedKey || envKey;
     setApiKey(effectiveKey);
 
     // 2. Check if trip data is provided via URL (?plan=...)
