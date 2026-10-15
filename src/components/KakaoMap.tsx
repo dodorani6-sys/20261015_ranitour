@@ -276,18 +276,30 @@ export const KakaoMap: React.FC<KakaoMapProps> = ({
             </div>
             <div>
               <p className="font-bold text-slate-900">
-                카카오맵 API 키를 등록하면 실제 지도가 활성화됩니다
+                {loadError
+                  ? "카카오맵 도메인 허용 등록이 필요합니다 (401 오류)"
+                  : "카카오맵 API 키를 등록하면 실제 지도가 활성화됩니다"}
               </p>
               <p className="text-slate-500 text-[11px]">
-                발급받으신 JavaScript 키를 입력하시면 실시간 도로 지도와 정확한 위치가 표시됩니다.
+                {loadError
+                  ? "카카오 개발자 콘솔의 [Web 사이트 도메인]에 현재 Vercel 도메인을 등록하시면 지도가 활성화됩니다."
+                  : "발급받으신 JavaScript 키를 입력하시면 실시간 도로 지도와 정확한 위치가 표시됩니다."}
               </p>
             </div>
           </div>
           <button
-            onClick={onOpenKeyModal}
+            onClick={
+              loadError
+                ? () =>
+                    window.open(
+                      "https://developers.kakao.com/console",
+                      "_blank"
+                    )
+                : onOpenKeyModal
+            }
             className="shrink-0 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition-all"
           >
-            API 키 등록하기
+            {loadError ? "카카오 콘솔 바로가기" : "API 키 등록하기"}
           </button>
         </div>
 
