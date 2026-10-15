@@ -96,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Buttons: 내 여행 목록 & 일정 공유 */}
         <div className="flex items-center gap-1.5">
-          {onOpenMyTrips && (
+          {onOpenMyTrips && !isReadOnly && (
             <button
               onClick={onOpenMyTrips}
               title="내 여행 보관함 열기"
