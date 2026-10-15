@@ -25,8 +25,23 @@ export function encodeTripToUrl(trip: TripPlan): string {
  */
 export function decodeTripFromUrl(encoded: string): TripPlan | null {
   try {
-    const base64 = decodeURIComponent(encoded);
-    const binary = atob(base64);
+    let clean = encoded;
+    try {
+      clean = decodeURIComponent(clean);
+    } catch (_) {
+      // If already decoded or has raw %, continue
+    }
+
+    // Critical: URL query parameters automatically convert '+' to ' ' (space).
+    // In Base64, '+' is essential, so restore any spaces to '+'!
+    clean = clean.replace(/ /g, "+").replace(/-/g, "+").replace(/_/g, "/");
+
+    // Ensure valid Base64 padding
+    while (clean.length % 4 !== 0) {
+      clean += "=";
+    }
+
+    const binary = atob(clean);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
       bytes[i] = binary.charCodeAt(i);

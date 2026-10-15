@@ -89,11 +89,17 @@ function TravelPlannerContent() {
     setApiKey(effectiveKey);
 
     // 2. Check if trip data is provided via URL (?plan=...)
-    const planParam = searchParams.get("plan");
+    let planParam = searchParams.get("plan");
+    if (!planParam && typeof window !== "undefined") {
+      planParam = new URLSearchParams(window.location.search).get("plan");
+    }
+
     if (planParam) {
       const decoded = decodeTripFromUrl(planParam);
       if (decoded && decoded.days && decoded.days.length > 0) {
         setTrip(decoded);
+        setActiveDay(1);
+        setActivePlaceId(null);
         return;
       }
     }
