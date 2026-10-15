@@ -22,7 +22,7 @@ export const DayTabs: React.FC<DayTabsProps> = ({
   onDeleteDay,
 }) => {
   return (
-    <div className="border-b border-slate-200 bg-white sticky top-[105px] z-20">
+    <div className="border-b border-slate-200 bg-white relative md:sticky md:top-[105px] z-20">
       <div className="flex items-center gap-1.5 px-4 pt-2.5 overflow-x-auto no-scrollbar scroll-smooth">
         {days.map((item) => {
           const isActive = item.day === activeDay;

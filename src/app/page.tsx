@@ -584,19 +584,19 @@ function TravelPlannerContent() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-slate-50 overflow-hidden font-sans">
+    <div className="flex flex-col min-h-screen md:h-screen w-full bg-slate-50 md:overflow-hidden font-sans">
       {/* Toast Notification Container */}
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
 
       {/* Main 2-Column Responsive Container */}
-      <div className="flex-1 flex flex-col md:flex-row w-full h-full min-h-0 min-w-0 overflow-hidden relative">
+      <div className="flex-1 flex flex-col md:flex-row w-full md:h-full min-h-0 min-w-0 md:overflow-hidden relative">
         {/* Left Column / Bottom Panel: Itinerary Management */}
         <aside
-          className={`bg-white border-slate-200/90 z-10 transition-all min-h-0 flex flex-col ${
+          className={`bg-white border-slate-200/90 z-10 transition-all flex flex-col ${
             mobileView === "split"
-              ? "flex-1 w-full order-2 md:order-1 md:w-[420px] lg:w-[450px] md:h-full border-t md:border-t-0 md:border-r"
+              ? "w-full order-2 md:order-1 md:w-[420px] lg:w-[450px] md:h-full border-t md:border-t-0 md:border-r"
               : mobileView === "list"
-              ? "h-full w-full order-2 md:order-1 md:w-[420px] lg:w-[450px] md:h-full border-r flex"
+              ? "min-h-screen md:min-h-0 w-full order-2 md:order-1 md:w-[420px] lg:w-[450px] md:h-full border-r flex"
               : "hidden md:flex md:order-1 md:w-[420px] lg:w-[450px] md:h-full border-r"
           }`}
         >
@@ -630,22 +630,22 @@ function TravelPlannerContent() {
           />
 
           {/* Subheader: Day Summary & Add Place Button */}
-          <div className="px-5 py-3 bg-slate-50/80 border-b border-slate-200/70 flex items-center justify-between shrink-0">
+          <div className="px-4 py-2.5 sm:px-5 sm:py-3 bg-slate-50/80 border-b border-slate-200/70 flex items-center justify-between shrink-0">
             {/* Quick stats badge */}
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <span className="font-bold text-slate-800">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-600 min-w-0">
+              <span className="font-bold text-slate-800 whitespace-nowrap">
                 {activeDay}일차 일정
               </span>
               <span className="text-slate-300">|</span>
-              <span className="flex items-center gap-1 font-medium text-slate-500">
-                <Route className="w-3.5 h-3.5 text-blue-500" />
+              <span className="flex items-center gap-1 font-medium text-slate-500 whitespace-nowrap">
+                <Route className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                 약 {dayStats.totalDistance}km
               </span>
               {dayStats.totalDistance > 0 && (
                 <>
                   <span className="text-slate-300">·</span>
-                  <span className="flex items-center gap-1 font-medium text-slate-500">
-                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="flex items-center gap-1 font-medium text-slate-500 whitespace-nowrap">
+                    <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     {dayStats.totalTimeFormatted}
                   </span>
                 </>
@@ -656,17 +656,17 @@ function TravelPlannerContent() {
             {!isReadOnly && (
               <button
                 onClick={() => setIsSearchOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-sm transition-all active:scale-95"
+                className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-sm transition-all active:scale-95 whitespace-nowrap shrink-0 ml-2"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 shrink-0" />
                 <span>장소 추가</span>
               </button>
             )}
           </div>
 
-          {/* Place Cards List (Scrollable) */}
+          {/* Place Cards List (Scrollable on desktop, natural page flow on mobile) */}
           <div
-            className="flex-1 overflow-y-auto custom-scrollbar p-5 pb-20 md:pb-5 space-y-1"
+            className="flex-1 overflow-visible md:overflow-y-auto md:custom-scrollbar p-4 sm:p-5 pb-24 md:pb-5 space-y-1"
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
@@ -776,40 +776,40 @@ function TravelPlannerContent() {
       </div>
 
       {/* Mobile Bottom Floating Switcher */}
-      <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-slate-900/90 text-white backdrop-blur-md p-1 rounded-full shadow-2xl border border-slate-700/60 flex items-center gap-1">
+      <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-slate-900/90 text-white backdrop-blur-md p-1 rounded-full shadow-2xl border border-slate-700/60 flex items-center gap-1 shrink-0 whitespace-nowrap">
         <button
           onClick={() => setMobileView("split")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
             mobileView === "split"
               ? "bg-blue-600 text-white shadow-xs"
               : "text-slate-400 hover:text-white"
           }`}
           title="상단 지도 + 하단 일정"
         >
-          <Rows className="w-3.5 h-3.5" />
-          <span>지도+일정</span>
+          <Rows className="w-3.5 h-3.5 shrink-0" />
+          <span className="whitespace-nowrap">지도+일정</span>
         </button>
         <button
           onClick={() => setMobileView("list")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
             mobileView === "list"
               ? "bg-blue-600 text-white shadow-xs"
               : "text-slate-400 hover:text-white"
           }`}
         >
-          <ListIcon className="w-3.5 h-3.5" />
-          <span>일정만</span>
+          <ListIcon className="w-3.5 h-3.5 shrink-0" />
+          <span className="whitespace-nowrap">일정만</span>
         </button>
         <button
           onClick={() => setMobileView("map")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
             mobileView === "map"
               ? "bg-blue-600 text-white shadow-xs"
               : "text-slate-400 hover:text-white"
           }`}
         >
-          <MapIcon className="w-3.5 h-3.5" />
-          <span>지도만</span>
+          <MapIcon className="w-3.5 h-3.5 shrink-0" />
+          <span className="whitespace-nowrap">지도만</span>
         </button>
       </div>
 
