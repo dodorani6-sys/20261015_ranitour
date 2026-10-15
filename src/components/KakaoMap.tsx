@@ -476,16 +476,16 @@ export const KakaoMap: React.FC<KakaoMapProps> = ({
   }
 
   return (
-    <div className="relative w-full h-full min-h-[350px]">
+    <div className="relative w-full h-full overflow-hidden">
       {/* Kakao Map DOM Target Container */}
       <div
         ref={containerRef}
         id="kakao-map-container"
-        className="w-full h-full min-h-[350px] bg-slate-100 kakao-map-container"
+        className="w-full h-full bg-slate-100 kakao-map-container"
       />
 
       {/* Floating Map Controls */}
-      <div className="absolute right-4 top-4 z-20 flex flex-col gap-1.5 bg-white/95 backdrop-blur-md rounded-2xl shadow-floating p-1.5 border border-slate-200">
+      <div className="absolute right-3 top-3 sm:right-4 sm:top-4 z-20 flex flex-col gap-1.5 bg-white/95 backdrop-blur-md rounded-2xl shadow-floating p-1.5 border border-slate-200">
         <button
           onClick={handleZoomIn}
           title="확대"
@@ -512,7 +512,7 @@ export const KakaoMap: React.FC<KakaoMapProps> = ({
 
       {/* Route Summary Pill */}
       {places.length > 0 && (
-        <div className="absolute bottom-3 left-3 sm:bottom-6 sm:left-6 z-20 bg-slate-900/90 text-white backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl shadow-floating text-[11px] sm:text-xs flex items-center gap-1.5 sm:gap-2 border border-slate-700/50 whitespace-nowrap">
+        <div className="absolute top-3 left-3 sm:top-auto sm:bottom-6 sm:left-6 z-20 bg-slate-900/90 text-white backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl shadow-floating text-[11px] sm:text-xs flex items-center gap-1.5 sm:gap-2 border border-slate-700/50 whitespace-nowrap">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
           <span className="hidden sm:inline">현재 일차 방문지</span>
           <span className="sm:hidden">방문지</span>

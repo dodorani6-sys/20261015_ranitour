@@ -751,7 +751,7 @@ function TravelPlannerContent() {
 
         {/* Right Column: Kakao Map Area */}
         <main
-          className={`min-w-0 relative transition-all ${
+          className={`min-w-0 relative overflow-hidden transition-all ${
             mobileView === "split"
               ? "h-[36vh] sm:h-[40vh] w-full shrink-0 order-1 md:order-2 md:h-full md:flex-1 block shadow-xs"
               : mobileView === "map"
