@@ -9,6 +9,7 @@ import {
   Eye,
   MapPin,
   Luggage,
+  Download,
 } from "lucide-react";
 
 interface HeaderProps {
@@ -23,6 +24,7 @@ interface HeaderProps {
   onOpenShareModal: () => void;
   onOpenMyTrips?: () => void;
   onOpenKeyModal?: () => void;
+  onSaveToMyTrips?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   onUpdateDates,
   onOpenShareModal,
   onOpenMyTrips,
+  onSaveToMyTrips,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState(title);
@@ -107,6 +110,17 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold">
                 {tripsCount}
               </span>
+            </button>
+          )}
+
+          {isReadOnly && onSaveToMyTrips && (
+            <button
+              onClick={onSaveToMyTrips}
+              title="이 일정을 내 여행 보관함에 복사하여 저장합니다"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all active:scale-95"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>내 보관함에 담기</span>
             </button>
           )}
 

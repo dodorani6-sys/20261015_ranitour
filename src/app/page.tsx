@@ -547,6 +547,34 @@ function TravelPlannerContent() {
     addToast("여행 일정이 보관함에서 삭제되었습니다.", "info");
   };
 
+  const handleSaveSharedToMyTrips = () => {
+    const importedTrip: TripPlan = {
+      ...trip,
+      id: `trip-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+    };
+
+    const nextTrips = [
+      importedTrip,
+      ...trips.filter((t) => t.id !== importedTrip.id),
+    ];
+    setTrips(nextTrips);
+    setTrip(importedTrip);
+
+    try {
+      localStorage.setItem("triple_saved_trips", JSON.stringify(nextTrips));
+      localStorage.setItem("triple_active_trip_id", importedTrip.id);
+      localStorage.setItem(
+        "triple_travel_planner_data",
+        JSON.stringify(importedTrip)
+      );
+    } catch (e) {
+      console.error(e);
+    }
+
+    // Clean URL and switch into editable mode
+    window.location.href = window.location.pathname;
+  };
+
   return (
     <div className="flex flex-col h-screen w-full bg-slate-50 overflow-hidden font-sans">
       {/* Toast Notification Container */}
@@ -577,6 +605,7 @@ function TravelPlannerContent() {
             onOpenShareModal={() => setIsShareModalOpen(true)}
             onOpenMyTrips={() => setIsMyTripsOpen(true)}
             onOpenKeyModal={() => setIsKeyModalOpen(true)}
+            onSaveToMyTrips={handleSaveSharedToMyTrips}
           />
 
           {/* Day Tabs */}
