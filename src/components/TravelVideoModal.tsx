@@ -23,6 +23,38 @@ import {
   Compass,
 } from "lucide-react";
 import { Place, TripPlan } from "@/types/trip";
+import { compressImage } from "@/utils/mediaUtils";
+
+const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
+  hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1080&q=80",
+  food: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1080&q=80",
+  cafe: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=1080&q=80",
+  transport: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1080&q=80",
+  sight: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1080&q=80",
+  default: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1080&q=80",
+};
+
+function getCategoryPhotoFallback(place: Place): string {
+  const cat = (place.category || "").toLowerCase();
+  const name = (place.name || "").toLowerCase();
+
+  if (cat.includes("숙박") || cat.includes("호텔") || cat.includes("리조트") || name.includes("호텔") || name.includes("리조트")) {
+    return DEFAULT_CATEGORY_IMAGES.hotel;
+  }
+  if (cat.includes("카페") || name.includes("카페") || cat.includes("디저트") || name.includes("커피")) {
+    return DEFAULT_CATEGORY_IMAGES.cafe;
+  }
+  if (cat.includes("음식") || cat.includes("식당") || cat.includes("닭강정") || cat.includes("시장") || name.includes("시장") || name.includes("맛집")) {
+    return DEFAULT_CATEGORY_IMAGES.food;
+  }
+  if (cat.includes("교통") || cat.includes("터미널") || name.includes("터미널") || name.includes("역")) {
+    return DEFAULT_CATEGORY_IMAGES.transport;
+  }
+  if (cat.includes("해수욕장") || cat.includes("바다") || cat.includes("항") || name.includes("해변") || name.includes("바다")) {
+    return DEFAULT_CATEGORY_IMAGES.sight;
+  }
+  return DEFAULT_CATEGORY_IMAGES.default;
+}
 
 interface TravelVideoModalProps {
   isOpen: boolean;
@@ -31,6 +63,7 @@ interface TravelVideoModalProps {
   activeDay: number;
   places: Place[];
   onUpdatePlaceCaption?: (placeId: string, caption: string) => void;
+  onUpdatePhoto?: (placeId: string, photoUrl: string | null) => void;
 }
 
 type AspectRatio = "9:16" | "1:1" | "16:9";
@@ -43,6 +76,7 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
   activeDay,
   places,
   onUpdatePlaceCaption,
+  onUpdatePhoto,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -86,24 +120,45 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
     setSceneCaptions(initialCaptions);
   }, [places, trip.title]);
 
-  // Preload all place photos into memory
+  // Preload all place photos + high-res category aesthetic fallbacks into memory
   useEffect(() => {
     places.forEach((p) => {
-      if (p.photoUrl && !loadedImagesRef.current[p.id]) {
+      // 1. User uploaded photo
+      if (p.photoUrl) {
         const img = new Image();
-        img.crossOrigin = "anonymous";
+        if (p.photoUrl.startsWith("http")) img.crossOrigin = "anonymous";
         img.src = p.photoUrl;
         img.onload = () => {
           loadedImagesRef.current[p.id] = img;
+          drawFrame(currentTime);
         };
+        if (img.complete) {
+          loadedImagesRef.current[p.id] = img;
+        }
+      }
+
+      // 2. High-res Category Aesthetic Fallback (ensures video ALWAYS has stunning travel photos)
+      const fallbackUrl = getCategoryPhotoFallback(p);
+      const fallbackKey = `fallback_${p.id}`;
+      if (!loadedImagesRef.current[fallbackKey]) {
+        const fbImg = new Image();
+        fbImg.crossOrigin = "anonymous";
+        fbImg.src = fallbackUrl;
+        fbImg.onload = () => {
+          loadedImagesRef.current[fallbackKey] = fbImg;
+          drawFrame(currentTime);
+        };
+        if (fbImg.complete) {
+          loadedImagesRef.current[fallbackKey] = fbImg;
+        }
       }
     });
   }, [places]);
 
-  // Calculate durations: Intro = 2.5s, Each place = 3.0s, Outro = 2.0s
-  const introDuration = includeMapIntro ? 2.5 : 0;
-  const placeDuration = 3.0;
-  const outroDuration = 2.0;
+  // Calculate durations: Intro = 2.0s, Each place = 2.4s (snappy reels pacing), Outro = 1.6s
+  const introDuration = includeMapIntro ? 2.0 : 0;
+  const placeDuration = 2.4;
+  const outroDuration = 1.6;
   const calculatedTotal =
     introDuration + Math.max(1, places.length) * placeDuration + outroDuration;
 
@@ -347,7 +402,9 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
     index: number,
     progress: number
   ) => {
-    const img = loadedImagesRef.current[place.id];
+    const img =
+      loadedImagesRef.current[place.id] ||
+      loadedImagesRef.current[`fallback_${place.id}`];
 
     // Background Photo with smooth Ken Burns Zoom Effect
     if (img && img.complete) {
@@ -363,23 +420,12 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
       drawImageCover(ctx, img, 0, 0, w, h);
       ctx.restore();
     } else {
-      // Fallback stylized colored card when no user photo uploaded
+      // Fallback stylized gradient
       const grad = ctx.createLinearGradient(0, 0, w, h);
       grad.addColorStop(0, "#1e293b");
       grad.addColorStop(1, "#0f172a");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
-
-      // Decorative center icon
-      ctx.fillStyle = "rgba(255,255,255,0.06)";
-      ctx.beginPath();
-      ctx.arc(w / 2, h / 2 - 40, 100, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "rgba(255,255,255,0.4)";
-      ctx.font = "600 18px Pretendard, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("📷 사진을 등록하면 멋진 배경으로 채워집니다", w / 2, h / 2 - 30);
     }
 
     // Vintage Film Polaroid Border Style
@@ -1048,25 +1094,32 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
               </button>
             </div>
 
-            {/* 4. Scene Subtitle Editor */}
+            {/* 4. Scene Subtitle & Photo Editor */}
             <div className="flex-1 flex flex-col min-h-0 pt-2 border-t border-slate-800">
-              <label className="text-xs font-bold text-slate-300 mb-2 flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>장소별 자막 편집 ({places.length}개 씬)</span>
+                  <span>장소별 사진 및 자막 편집 ({places.length}개 씬)</span>
                 </span>
                 <span className="text-[10px] text-slate-500 font-normal">
                   타이핑 즉시 반영
                 </span>
               </label>
 
-              <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+              <div className="mb-2 p-2 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-between text-xs text-indigo-200">
+                <span className="flex items-center gap-1.5 text-[11px] leading-tight">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span>내 사진을 등록하면 감성 배경 대신 내 사진이 릴스에 나옵니다!</span>
+                </span>
+              </div>
+
+              <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1 custom-scrollbar">
                 {places.map((place, idx) => (
                   <div
                     key={place.id}
                     className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 transition-colors"
                   >
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between mb-2 gap-2">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                           {idx + 1}
@@ -1075,22 +1128,50 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
                           {place.name}
                         </span>
                       </div>
-                      {place.photoUrl ? (
-                        <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded-md">
-                          사진 등록됨
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded-md">
-                          기본 배경
-                        </span>
-                      )}
+
+                      {/* Photo Upload / Change Button directly in modal */}
+                      <label className="cursor-pointer shrink-0">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const compressed = await compressImage(file, 1280, 0.82);
+                              onUpdatePhoto?.(place.id, compressed);
+                              const img = new Image();
+                              img.src = compressed;
+                              img.onload = () => {
+                                loadedImagesRef.current[place.id] = img;
+                                drawFrame(currentTime);
+                              };
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
+                        />
+                        {place.photoUrl ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-500/30 transition-colors">
+                            <Camera className="w-3 h-3" />
+                            <span>사진 변경</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 px-2 py-0.5 rounded-md border border-indigo-500/30 transition-colors">
+                            <Camera className="w-3 h-3" />
+                            <span>+ 사진 올리기</span>
+                          </span>
+                        )}
+                      </label>
                     </div>
+
                     <input
                       type="text"
                       value={sceneCaptions[place.id] || ""}
                       onChange={(e) => handleCaptionChange(place.id, e.target.value)}
                       placeholder="이 장소의 감성 자막을 적어보세요"
-                      className="w-full text-xs bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                      className="w-full text-xs bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-indigo-500 transition-colors"
                     />
                   </div>
                 ))}

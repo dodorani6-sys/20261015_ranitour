@@ -914,6 +914,7 @@ function TravelPlannerContent() {
         activeDay={activeDay}
         places={currentPlaces}
         onUpdatePlaceCaption={handleUpdatePlaceCaption}
+        onUpdatePhoto={handleUpdatePlacePhoto}
       />
     </div>
   );
