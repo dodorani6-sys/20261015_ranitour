@@ -62,6 +62,8 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportedVideoUrl, setExportedVideoUrl] = useState<string | null>(null);
+  const [exportedBlob, setExportedBlob] = useState<Blob | null>(null);
+  const [isExportCompleted, setIsExportCompleted] = useState(false);
 
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -636,13 +638,22 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
 
       // Supported video mime types (iOS Safari supports video/mp4 since iOS 14.3+)
       const mimeTypes = [
-        "video/mp4;codecs=avc1",
         "video/mp4",
+        "video/mp4;codecs=avc1",
+        "video/mp4;codecs=h264",
         "video/webm;codecs=vp9",
+        "video/webm;codecs=vp8",
         "video/webm",
       ];
-      const selectedMime =
-        mimeTypes.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+      let selectedMime = "";
+      if (typeof MediaRecorder !== "undefined" && typeof MediaRecorder.isTypeSupported === "function") {
+        for (const m of mimeTypes) {
+          if (MediaRecorder.isTypeSupported(m)) {
+            selectedMime = m;
+            break;
+          }
+        }
+      }
 
       const stream = canvas.captureStream(30); // 30 fps
       const recorder = new MediaRecorder(
@@ -660,17 +671,11 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
           type: selectedMime || "video/mp4",
         });
         const url = URL.createObjectURL(finalBlob);
+        setExportedBlob(finalBlob);
         setExportedVideoUrl(url);
         setIsExporting(false);
+        setIsExportCompleted(true);
         setExportProgress(100);
-
-        // Auto trigger download for iPhone / PC
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${trip.title.replace(/\s+/g, "_")}_여행릴스.mp4`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
       };
 
       // Play through timeline frame-by-frame and record
@@ -692,6 +697,44 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
       console.error("Video export failed:", err);
       alert("비디오 변환 중 오류가 발생했습니다. 브라우저 지원 여부를 확인해주세요.");
       setIsExporting(false);
+    }
+  };
+
+  // Direct user-gesture handler to trigger native iOS Share Sheet ("비디오 저장" / Save Video) or direct download
+  const handleSaveToDevice = async () => {
+    if (!exportedBlob && !exportedVideoUrl) return;
+    const filename = `${trip.title.replace(/\s+/g, "_")}_릴스.mp4`;
+
+    // 1. Try iOS Web Share API (which brings up "비디오 저장" to Photos App!)
+    if (exportedBlob) {
+      try {
+        const file = new File([exportedBlob], filename, {
+          type: exportedBlob.type || "video/mp4",
+        });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: `${trip.title} 여행 릴스`,
+          });
+          return;
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return; // User cancelled share sheet
+        }
+        console.warn("navigator.share failed, fallback to anchor download", err);
+      }
+    }
+
+    // 2. Fallback: Standard browser download
+    if (exportedVideoUrl) {
+      const a = document.createElement("a");
+      a.href = exportedVideoUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
   };
 
@@ -726,8 +769,73 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
           </button>
         </div>
 
-        {/* Modal Body: 2-Column (Left: Canvas Preview, Right: Customization & Subtitle Controls) */}
-        <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-auto">
+        {/* Modal Body: Either Completion Screen OR 2-Column Editor */}
+        {isExportCompleted && exportedVideoUrl ? (
+          <div className="flex-1 p-6 sm:p-8 flex flex-col items-center justify-center text-center bg-slate-950 overflow-y-auto">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mb-3 shadow-lg">
+              <Check className="w-7 h-7" />
+            </div>
+            <h3 className="font-black text-white text-lg sm:text-xl mb-1.5">
+              🎉 릴스 비디오가 완성되었습니다!
+            </h3>
+            <p className="text-xs text-slate-400 max-w-sm mb-4 leading-relaxed">
+              아래 재생 화면에서 확인하시고, 초록색 버튼을 눌러 사진첩에 저장하세요!
+            </p>
+
+            {/* Rendered HTML5 Video Player */}
+            <div
+              className={`relative rounded-2xl overflow-hidden border border-slate-700 shadow-2xl mb-5 bg-black flex items-center justify-center ${
+                aspectRatio === "9:16"
+                  ? "aspect-[9/16] h-[38vh] sm:h-[42vh] w-auto"
+                  : aspectRatio === "1:1"
+                  ? "aspect-square h-[34vh] sm:h-[38vh] w-auto"
+                  : "aspect-[16/9] w-full max-w-md h-auto"
+              }`}
+            >
+              <video
+                src={exportedVideoUrl}
+                controls
+                playsInline
+                autoPlay
+                loop
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            {/* Direct Action Buttons */}
+            <div className="w-full max-w-xs space-y-2.5">
+              <button
+                type="button"
+                onClick={handleSaveToDevice}
+                className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-600 hover:to-indigo-700 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+              >
+                <Download className="w-5 h-5" />
+                <span>아이폰 사진첩(갤러리)에 저장</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsExportCompleted(false);
+                  setIsPlaying(false);
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>설정 변경 및 다시 편집하기</span>
+              </button>
+            </div>
+
+            <div className="mt-4 p-3 rounded-xl bg-slate-900 border border-slate-800 max-w-xs text-left">
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                💡 <b>아이폰 저장 팁:</b><br />
+                1. 버튼을 누른 후 아이폰 공유 메뉴에서 <b>[비디오 저장]</b>을 누르시면 사진 앱에 저장됩니다.<br />
+                2. 혹은 위 재생 화면을 <b>길게 꾹 눌러서 [비디오 저장]</b>을 선택하셔도 됩니다.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-auto">
           {/* Left Column: Video Canvas Preview Area */}
           <div className="flex-1 bg-black/90 flex flex-col items-center justify-center p-4 relative min-h-[380px] sm:min-h-[440px]">
             {/* The Video Canvas */}
@@ -997,17 +1105,20 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
                 onClick={handleExportVideo}
                 className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
               >
-                <Download className="w-4 h-4" />
+                <Sparkles className="w-4 h-4" />
                 <span>
-                  {isExporting ? "비디오 제작 중..." : "아이폰 갤러리에 저장 (비디오 다운로드)"}
+                  {isExporting
+                    ? `비디오 렌더링 중... (${exportProgress}%)`
+                    : "🎬 릴스 영상 생성하기 (클릭)"}
                 </span>
               </button>
               <p className="text-[11px] text-slate-500 text-center mt-1.5">
-                💡 인스타 릴스나 틱톡에 올릴 땐 인스타 최신 인기 음악을 입혀보세요!
+                생성이 완료되면 영상을 미리보고 갤러리에 저장할 수 있습니다.
               </p>
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );
