@@ -12,6 +12,8 @@ export interface Place {
   memo?: string;
   url?: string;
   transportMode?: TransportMode; // Transportation mode to next place (default: "car")
+  photoUrl?: string; // Captured photo / image for place (compressed Data URL)
+  customCaption?: string; // Custom subtitle for travel video reel
 }
 
 export interface DaySchedule {

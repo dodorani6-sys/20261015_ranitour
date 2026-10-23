@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   MapPin,
   Trash2,
@@ -12,8 +12,11 @@ import {
   GripVertical,
   ChevronUp,
   ChevronDown,
+  Camera,
+  X,
 } from "lucide-react";
 import { Place } from "@/types/trip";
+import { compressImage } from "@/utils/mediaUtils";
 
 interface PlaceCardProps {
   place: Place;
@@ -26,6 +29,7 @@ interface PlaceCardProps {
   onSelect: (place: Place) => void;
   onDelete: (placeId: string) => void;
   onUpdateMemo: (placeId: string, memo: string) => void;
+  onUpdatePhoto?: (placeId: string, photoUrl: string | null) => void;
   onDragStart?: (e: React.DragEvent, index: number) => void;
   onDragOver?: (e: React.DragEvent, index: number) => void;
   onDragEnter?: (e: React.DragEvent, index: number) => void;
@@ -48,6 +52,7 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({
   onSelect,
   onDelete,
   onUpdateMemo,
+  onUpdatePhoto,
   onDragStart,
   onDragOver,
   onDragEnter,
@@ -60,6 +65,27 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({
 }) => {
   const [isEditingMemo, setIsEditingMemo] = useState(false);
   const [memoText, setMemoText] = useState(place.memo || "");
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingPhoto(true);
+      const compressedDataUrl = await compressImage(file, 1280, 0.82);
+      onUpdatePhoto?.(place.id, compressedDataUrl);
+    } catch (err) {
+      console.error("Failed to compress image:", err);
+      alert("이미지를 처리하는 중 오류가 발생했습니다.");
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const handleSaveMemo = () => {
     onUpdateMemo(place.id, memoText.trim());
@@ -253,6 +279,74 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({
               )}
             </div>
           )}
+        </div>
+
+        {/* Place Photo for Travel Reel / Review */}
+        <div className="mt-2.5">
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoSelect}
+          />
+
+          {place.photoUrl ? (
+            <div className="relative rounded-xl overflow-hidden border border-slate-200 group/photo bg-slate-900/5">
+              <img
+                src={place.photoUrl}
+                alt={place.name}
+                className="w-full h-32 object-cover transition-transform group-hover/photo:scale-105 duration-300"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5 text-white text-[11px] font-medium drop-shadow-sm">
+                <Camera className="w-3.5 h-3.5" />
+                <span>릴스에 포함됨</span>
+              </div>
+              {!isReadOnly && (
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    title="사진 변경"
+                    className="px-2 py-1 bg-slate-900/80 hover:bg-slate-900 text-white rounded-lg text-[10px] font-medium backdrop-blur-xs flex items-center gap-1 shadow-sm transition-all"
+                  >
+                    <Camera className="w-3 h-3" />
+                    <span>변경</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm("등록된 사진을 삭제하시겠습니까?")) {
+                        onUpdatePhoto?.(place.id, null);
+                      }
+                    }}
+                    title="사진 삭제"
+                    className="p-1 bg-slate-900/80 hover:bg-rose-600 text-white rounded-lg transition-colors backdrop-blur-xs shadow-sm"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : !isReadOnly ? (
+            <button
+              type="button"
+              disabled={isUploadingPhoto}
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl border border-dashed border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/40 text-slate-400 hover:text-indigo-600 text-xs transition-all active:scale-[0.99]"
+            >
+              <Camera className="w-3.5 h-3.5 text-indigo-500" />
+              <span>{isUploadingPhoto ? "사진 최적화 중..." : "+ 사진 추가 (여행 릴스 제작용)"}</span>
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

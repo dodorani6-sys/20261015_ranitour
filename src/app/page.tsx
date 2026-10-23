@@ -17,6 +17,7 @@ import {
   RotateCcw,
   CheckCircle2,
   SlidersHorizontal,
+  Film,
 } from "lucide-react";
 
 import { TripPlan, Place, DaySchedule } from "@/types/trip";
@@ -33,6 +34,7 @@ import { KakaoMap } from "@/components/KakaoMap";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
 import { ShareModal } from "@/components/ShareModal";
 import { MyTripsDrawer } from "@/components/MyTripsDrawer";
+import { TravelVideoModal } from "@/components/TravelVideoModal";
 import { ToastContainer, ToastMessage } from "@/components/Toast";
 
 function TravelPlannerContent() {
@@ -53,6 +55,7 @@ function TravelPlannerContent() {
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isMyTripsOpen, setIsMyTripsOpen] = useState(false);
+  const [isReelsModalOpen, setIsReelsModalOpen] = useState(false);
 
   // State: Mobile toggle ('split' | 'list' | 'map')
   const [mobileView, setMobileView] = useState<"split" | "list" | "map">("split");
@@ -313,6 +316,46 @@ function TravelPlannerContent() {
     const updated = { ...trip, days: updatedDays };
     saveTripState(updated);
     addToast("메모가 저장되었습니다.");
+  };
+
+  const handleUpdatePlacePhoto = (placeId: string, photoUrl: string | null) => {
+    const updatedDays = trip.days.map((d) => {
+      if (d.day === activeDay) {
+        return {
+          ...d,
+          places: d.places.map((p) =>
+            p.id === placeId ? { ...p, photoUrl: photoUrl || undefined } : p
+          ),
+        };
+      }
+      return d;
+    });
+
+    const updated = { ...trip, days: updatedDays };
+    saveTripState(updated);
+    addToast(
+      photoUrl
+        ? "사진이 릴스 비디오에 등록되었습니다! 📸"
+        : "장소 사진이 삭제되었습니다.",
+      photoUrl ? "success" : "info"
+    );
+  };
+
+  const handleUpdatePlaceCaption = (placeId: string, customCaption: string) => {
+    const updatedDays = trip.days.map((d) => {
+      if (d.day === activeDay) {
+        return {
+          ...d,
+          places: d.places.map((p) =>
+            p.id === placeId ? { ...p, customCaption } : p
+          ),
+        };
+      }
+      return d;
+    });
+
+    const updated = { ...trip, days: updatedDays };
+    saveTripState(updated);
   };
 
   const handleChangeTransportMode = (placeId: string, newMode: "car" | "walk") => {
@@ -652,16 +695,29 @@ function TravelPlannerContent() {
               )}
             </div>
 
-            {/* [+ 장소 추가] Button */}
-            {!isReadOnly && (
+            {/* Action Buttons: 릴스 비디오 제작 & 장소 추가 */}
+            <div className="flex items-center gap-1.5 shrink-0 ml-2">
               <button
-                onClick={() => setIsSearchOpen(true)}
-                className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-sm transition-all active:scale-95 whitespace-nowrap shrink-0 ml-2"
+                type="button"
+                onClick={() => setIsReelsModalOpen(true)}
+                title="이 일정을 인스타 릴스 동영상으로 자동 제작합니다"
+                className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-sm transition-all active:scale-95 whitespace-nowrap shrink-0"
               >
-                <Plus className="w-3.5 h-3.5 shrink-0" />
-                <span>장소 추가</span>
+                <Film className="w-3.5 h-3.5 shrink-0" />
+                <span>릴스 제작</span>
               </button>
-            )}
+
+              {!isReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => setIsSearchOpen(true)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-sm transition-all active:scale-95 whitespace-nowrap shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span>장소 추가</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Place Cards List (Scrollable on desktop, natural page flow on mobile) */}
@@ -708,6 +764,7 @@ function TravelPlannerContent() {
                     onSelect={handleSelectPlace}
                     onDelete={handleDeletePlace}
                     onUpdateMemo={handleUpdateMemo}
+                    onUpdatePhoto={handleUpdatePlacePhoto}
                     onDragStart={handleDragStart}
                     onDragOver={handleDragOver}
                     onDragEnter={handleDragEnter}
@@ -847,6 +904,16 @@ function TravelPlannerContent() {
         onCreateTrip={handleCreateTrip}
         onDuplicateTrip={handleDuplicateTrip}
         onDeleteTrip={handleDeleteTrip}
+      />
+
+      {/* Travel Reels Video Creation Modal */}
+      <TravelVideoModal
+        isOpen={isReelsModalOpen}
+        onClose={() => setIsReelsModalOpen(false)}
+        trip={trip}
+        activeDay={activeDay}
+        places={currentPlaces}
+        onUpdatePlaceCaption={handleUpdatePlaceCaption}
       />
     </div>
   );
