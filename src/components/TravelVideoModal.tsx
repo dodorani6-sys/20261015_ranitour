@@ -173,6 +173,8 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
     return { width: 1280, height: 720 };
   };
 
+  const canvasDimensions = getCanvasDimensions();
+
   // Play synthesized joyful lo-fi chime sound using Web Audio API when sound is enabled
   const playTravelTone = (freq = 440, type: OscillatorType = "sine") => {
     if (!soundEnabled) return;
@@ -463,7 +465,7 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
     // Bottom Subtitle & Place Name
     const captionText =
       sceneCaptions[place.id] || place.memo || `${place.name} 방문!`;
-    const bottomY = h - 90;
+    const bottomY = Math.round(h * 0.84);
 
     // Subtitle Container Card
     ctx.save();
@@ -638,8 +640,9 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
     };
   }, [isOpen, isPlaying, totalDuration, aspectRatio, themeStyle, includeMapIntro, sceneCaptions]);
 
-  // Adjust canvas resolution when aspect ratio changes
+  // Adjust canvas resolution when modal opens or aspect ratio changes
   useEffect(() => {
+    if (!isOpen) return;
     const canvas = canvasRef.current;
     if (canvas) {
       const dim = getCanvasDimensions();
@@ -647,7 +650,7 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
       canvas.height = dim.height;
       drawFrame(currentTime);
     }
-  }, [aspectRatio]);
+  }, [isOpen, aspectRatio]);
 
   // Play / Pause toggle
   const handleTogglePlay = () => {
@@ -700,6 +703,12 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
           }
         }
       }
+
+      // Strictly lock canvas dimensions to the target resolution before recording
+      const dim = getCanvasDimensions();
+      canvas.width = dim.width;
+      canvas.height = dim.height;
+      drawFrame(0);
 
       const stream = canvas.captureStream(30); // 30 fps
       const recorder = new MediaRecorder(
@@ -844,7 +853,7 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
                 playsInline
                 autoPlay
                 loop
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover rounded-2xl"
               />
             </div>
 
@@ -896,7 +905,9 @@ export const TravelVideoModal: React.FC<TravelVideoModalProps> = ({
             >
               <canvas
                 ref={canvasRef}
-                className="w-full h-full object-contain select-none"
+                width={canvasDimensions.width}
+                height={canvasDimensions.height}
+                className="w-full h-full object-cover select-none"
               />
 
               {/* Center Play Overlay when Paused */}
